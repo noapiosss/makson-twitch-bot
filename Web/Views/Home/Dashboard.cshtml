@@ -1,0 +1,17 @@
+@model Web.Services.TwitchBotService;
+
+@{
+    ViewData["Title"] = "Home Page";
+}
+
+<link rel="stylesheet" href="~/css/dashboard.css" />
+
+<div class="viewers-container">
+    @foreach (var command in Model.Commands)
+    {
+        <div class="viewer-container">
+            <div class="viewer-name">@command.Key</div>
+            <div class="watchtime">@command.Value</div>
+        </div>
+    }    
+</div>
