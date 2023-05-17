@@ -1,0 +1,21 @@
+@{
+    ViewData["Title"] = "Signin";
+    Layout = "_Layout";
+}
+
+<link rel="stylesheet" href="~/css/sign-in-page.css" />
+
+<form asp-action="Signin" class="sign-in-form col-2">
+    <div class="sign-in-title col-12">
+        <h2>Sign-in first!</h2>
+    </div>
+    <div class="username-wrapper col-12"> 
+        <input type="text" name="username" class="form-control username-input col-12" placeholder="Username">
+    </div>
+    <div class="password-wrapper col-12">
+        <input type="password" name="password" class="form-control password-input col-12" placeholder="Password">
+    </div>
+    <div class="form-group col-12">
+        <input type="submit" value="Sign-in" class="col-12 btn btn-primary sign-in-button" />
+    </div>
+</form>

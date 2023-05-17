@@ -1,0 +1,57 @@
+@model IList<Contracts.Database.SocialMedia>
+
+@{
+    ViewData["Title"] = "Commands";
+}
+
+<link rel="stylesheet" href="~/css/social-medias-styles.css" />
+
+<div class="text-center">
+    <h1 class="display-4">Social Medias</h1>
+</div>
+
+<table class="table" id="table">
+    <thead>
+        <tr>
+            <th class="social-media-column">
+                Command
+            </th>
+            <th class="link-column">
+                Link
+            </th>
+            <th class="button-column">
+
+            </th>
+        </tr>
+    </thead>
+
+    <tbody id="table-body">
+        @foreach (var socialMedia in Model)
+        {
+            <tr id="row-@socialMedia.SocialNetworkName">
+                <th>
+                    @socialMedia.SocialNetworkName
+                </th>
+                <th>
+                    @socialMedia.Link
+                </th>
+                <th>
+                    <div class="delete-button" id="@socialMedia.SocialNetworkName">delete</div>
+                </th>
+            </tr>
+        }
+        <tr id="add-row">
+            <th>
+                <input type="text" class="social-media-input" id="social-media-input" placeholder="command">
+            </th>
+            <th>
+                <input type="text" class="link-input" id="link-input" placeholder="link">
+            </th>
+            <th>
+                <div class="add-button" id="add-button">add</div>
+            </th>
+        </tr>
+    </tbody>
+</table>
+
+<script src="~/js/social-medias-page.js"></script>

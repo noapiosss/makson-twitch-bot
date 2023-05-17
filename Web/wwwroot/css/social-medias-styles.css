@@ -1,0 +1,52 @@
+.social-media-column
+{
+    width: 10%;
+}
+
+.link-column
+{
+
+}
+
+.button-column
+{
+    width: 10%;
+}
+
+.delete-button
+{
+    color: black;
+    border: 2px solid black;    
+    border-radius: 10px;
+    text-align: center;
+}
+
+.delete-button:hover
+{
+    background-color: red;
+    cursor: pointer;
+}
+
+.social-media-input
+{
+    width: 100%;
+}
+
+.link-input
+{
+    width: 100%;
+}
+
+.add-button
+{
+    color: black;
+    border: 2px solid black;    
+    border-radius: 10px;
+    text-align: center;
+}
+
+.add-button:hover
+{
+    background-color: rgb(0, 255, 0);
+    cursor: pointer;
+}

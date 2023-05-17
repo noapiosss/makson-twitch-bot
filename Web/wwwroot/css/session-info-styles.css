@@ -1,0 +1,30 @@
+#session-info
+{
+    display: inline-flex;
+    padding-left: 5px;
+}
+
+.username-info
+{
+    color: black;  
+    padding-left: 5px;
+    margin: auto;
+    margin-right: 5px;
+}
+
+#sign-in-link, #sign-out-link
+{
+    margin: auto;
+    padding: 5px;
+    border-radius: 10px;
+    color: black;
+    text-decoration: none;
+}
+
+#sign-in-link:hover, #sign-out-link:hover
+{
+    cursor: pointer;
+    background-color: rgb(233, 233, 233);
+    color: black;
+    text-decoration: none;
+}

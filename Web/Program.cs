@@ -1,4 +1,5 @@
 using Domain;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,19 +9,17 @@ using Microsoft.Extensions.Options;
 using TwitchLib.Api.Interfaces;
 using Web.Configuration;
 using Web.Services;
-using Web.Services.Interfaces;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
-
-
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie();
 
 builder.Services.Configure<AppConfiguration>(builder.Configuration.GetSection("AppConfiguration"));
 builder.Services.Configure<TwitchBotConfiguration>(builder.Configuration.GetSection("TwitchBotConfiguration"));
 builder.Services.Configure<TwitchApiConfiguration>(builder.Configuration.GetSection("TwitchApiConfiguration"));
-builder.Services.Configure<SpotifyApiConfiguration>(builder.Configuration.GetSection("SpotifyApiConfiguration"));
 
 builder.Services.AddDomainServices((sp, options) =>
 {
@@ -32,7 +31,6 @@ builder.Services.AddDomainServices((sp, options) =>
 });
 
 builder.Services.AddSingleton<ITwitchAPI, TwitchApiClient>();
-builder.Services.AddSingleton<ISpotifyAPI, SpotifyApiClient>();
 builder.Services.AddSingleton<TwitchBotService>();
 builder.Services.AddHostedService(provider => provider.GetService<TwitchBotService>());
 

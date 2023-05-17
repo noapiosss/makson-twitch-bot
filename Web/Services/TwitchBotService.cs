@@ -18,33 +18,28 @@ using TwitchLib.Client.Events;
 using TwitchLib.Client.Models;
 using TwitchLib.Communication.Clients;
 using TwitchLib.Communication.Models;
+using TwitchLib.PubSub;
 using Web.Configuration;
-using Web.Services.Interfaces;
 
 namespace Web.Services
 {
 
     public class TwitchBotService : IHostedService, IDisposable
     {
-        private readonly ISpotifyAPI _spotifyApiClient;
         private readonly ITwitchAPI _twitchApiClient;
         private readonly TwitchClient _twitchBotClient;
+        private readonly TwitchPubSub _twitchPubSubClient;
         private readonly IServiceScopeFactory _serviceScopeFactory;
-        public string PeriodicMessage = "Yo guys and gals! If you want to support streamer and get more content follow his social medias:" +
-                "\nhttps://twitter.com/MaksonGospodar/" +
-                "\nhttps://www.instagram.com/2ez4makson/";
         public Dictionary<string, DateTime> Viewers = new();
-        public Dictionary<string, string> Commands = new();
+        private bool isLive;
+        private DateTime lastLiveStarted;
         public Timer PeriodicMessageTimer;
 
         public TwitchBotService(IOptionsMonitor<TwitchBotConfiguration> twitchBotConfiguration,
             IServiceScopeFactory serviceScopeFactory,
-            // OptionsMonitor<SpotifyApiConfiguration> spotifyApiConfiguration,
-            ISpotifyAPI spotifyApiClient,
             ITwitchAPI twitchApiClient)
         {
             _twitchApiClient = twitchApiClient;
-            _spotifyApiClient = spotifyApiClient;
             _serviceScopeFactory = serviceScopeFactory;
 
 
@@ -54,6 +49,7 @@ namespace Web.Services
                 MessagesAllowedInPeriod = 750,
                 ThrottlingPeriod = TimeSpan.FromSeconds(30)
             };
+
 
             WebSocketClient customClient = new(clientOptions);
             _twitchBotClient = new(customClient);
@@ -65,20 +61,29 @@ namespace Web.Services
             _twitchBotClient.OnMessageReceived += ClientOnMessageReceived;
             _twitchBotClient.OnUserJoined += Client_OnUserJoin;
             _twitchBotClient.OnUserLeft += Client_OnUserLeft;
+            _twitchBotClient.OnNewSubscriber += Client_NewSub;
+            _twitchBotClient.OnReSubscriber += Clinet_ReSub;
+
+            _twitchPubSubClient = new();
+            _twitchPubSubClient.ListenToFollows(twitchBotConfiguration.CurrentValue.Channel);
+            _twitchPubSubClient.OnFollow += Client_OnFollow;
+            _twitchPubSubClient.OnStreamUp += Client_OnStreamUp;
+            _twitchPubSubClient.OnStreamDown += Client_OnStreamDown;
+        }
+
+        private void Client_OnStreamDown(object sender, TwitchLib.PubSub.Events.OnStreamDownArgs e)
+        {
+            isLive = false;
+        }
+
+        private void Client_OnStreamUp(object sender, TwitchLib.PubSub.Events.OnStreamUpArgs e)
+        {
+            isLive = true;
+            lastLiveStarted = DateTime.UtcNow;
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            using IServiceScope scope = _serviceScopeFactory.CreateScope();
-            IMediator mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-
-            GetAllCommandsQuery getAllCommandsQuery = new() { };
-            GetAllCommandsQueryResult getAllCommandsQueryResult = await mediator.Send(getAllCommandsQuery, cancellationToken);
-            foreach (Command command in getAllCommandsQueryResult.Commands)
-            {
-                Commands.Add(command.CommandName, command.CommandOutput);
-            }
-
             _ = _twitchBotClient.Connect();
 
             PeriodicMessageTimer = new(SendPeriodicMessage, null, TimeSpan.FromHours(30), TimeSpan.FromHours(1));
@@ -91,9 +96,35 @@ namespace Web.Services
             return Task.CompletedTask;
         }
 
-        private void SendPeriodicMessage(object state)
+        private void Clinet_ReSub(object sender, OnReSubscriberArgs e)
         {
-            _twitchBotClient.SendMessage(_twitchBotClient.JoinedChannels[0].Channel, PeriodicMessage);
+            _twitchBotClient.SendMessage(_twitchBotClient.JoinedChannels[0].Channel, $"@{e.ReSubscriber.DisplayName} You are a cutie kitty gospod6Hehe for {e.ReSubscriber.Months} months!");
+        }
+
+        private void Client_NewSub(object sender, OnNewSubscriberArgs e)
+        {
+            _twitchBotClient.SendMessage(_twitchBotClient.JoinedChannels[0].Channel, $"@{e.Subscriber.DisplayName} Welcome on the board, fella! Now you are a cutie kitty gospod6Hehe");
+        }
+
+        private void Client_OnFollow(object sender, TwitchLib.PubSub.Events.OnFollowArgs e)
+        {
+            _twitchBotClient.SendMessage(_twitchBotClient.JoinedChannels[0].Channel, $"@{e.Username} Welcome to channel, fella!");
+        }
+
+        private async void SendPeriodicMessage(object state)
+        {
+            string periodicMessage = "Yo guys and gals! If you want to support streamer and get more content follow his social medias:";
+            using IServiceScope scope = _serviceScopeFactory.CreateScope();
+            IMediator mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+
+            GetAllSocialMediasQuery getAllSocialMediasQuery = new();
+            GetAllSocialMediasQueryResult getAllSocialMediasQueryResult = await mediator.Send(getAllSocialMediasQuery);
+            foreach (SocialMedia socialMedia in getAllSocialMediasQueryResult.SocialMedias)
+            {
+                periodicMessage += $"\n{socialMedia.Link}";
+            }
+
+            _twitchBotClient.SendMessage(_twitchBotClient.JoinedChannels[0].Channel, periodicMessage);
         }
 
         private void Client_OnLog(object sender, OnLogArgs e)
@@ -140,11 +171,21 @@ namespace Web.Services
 
         private string GetWatchTimeMessage(string requestFrom, string requestAbout)
         {
+            if (!isLive)
+            {
+                return $"@{requestFrom} stream currently is offline";
+            }
+
             if (Viewers.TryGetValue(requestAbout, out DateTime startWatchingAt))
             {
                 return requestFrom == requestAbout ?
                     $"@{requestFrom} You are not watching stream" :
                     $"@{requestFrom} {requestAbout} is not watching stream";
+            }
+
+            if (startWatchingAt < lastLiveStarted)
+            {
+                startWatchingAt = lastLiveStarted;
             }
 
             TimeSpan watchtime = DateTime.UtcNow - startWatchingAt;
@@ -227,55 +268,6 @@ namespace Web.Services
 
             if (e.ChatMessage.Message.StartsWith("!song"))
             {
-                string song = await _spotifyApiClient.GetCurrentPlayingTrack();
-                _twitchBotClient.SendMessage(_twitchBotClient.JoinedChannels[0].Channel, $"@{e.ChatMessage.Username} {song}");
-                return;
-            }
-
-            if (e.ChatMessage.Message.StartsWith("!addCommand"))
-            {
-                if (!e.ChatMessage.IsModerator)
-                {
-                    return;
-                }
-
-                string[] split = e.ChatMessage.Message.Split(" ");
-                string commandName = split[1];
-                string commandOutput = split[2];
-
-                await AddCustomCommand(e.ChatMessage.Username, commandName, commandOutput);
-
-                return;
-            }
-
-            if (e.ChatMessage.Message.StartsWith("!editCommand"))
-            {
-                if (!e.ChatMessage.IsModerator)
-                {
-                    return;
-                }
-
-                string[] split = e.ChatMessage.Message.Split(" ");
-                string commandName = split[1];
-                string commandOutput = split[2];
-
-                await EditCustomCommand(e.ChatMessage.Username, commandName, commandOutput);
-
-                return;
-            }
-
-            if (e.ChatMessage.Message.StartsWith("!deleteCommand"))
-            {
-                if (!e.ChatMessage.IsModerator)
-                {
-                    return;
-                }
-
-                string[] split = e.ChatMessage.Message.Split(" ");
-                string commandName = split[1];
-
-                await DeleteCustomCommand(e.ChatMessage.Username, commandName);
-
                 return;
             }
 
@@ -286,76 +278,28 @@ namespace Web.Services
             }
         }
 
-        private async Task AddCustomCommand(string moderatorName, string commandName, string commandOutput)
+        private async void TryExecuteCustomCommand(ChatMessage chatMessage)
         {
+            string reqest = chatMessage.Message.Split(" ")[0];
             using IServiceScope scope = _serviceScopeFactory.CreateScope();
             IMediator mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 
-            if (Commands.TryAdd(commandName, commandOutput))
+            GetSocialMediaByNameQuery getSocialMediaByNameQuery = new() { SocialNetworkName = reqest };
+            SocialMedia socialMedia = (await mediator.Send(getSocialMediaByNameQuery)).SocialMedia;
+
+            if (socialMedia is not null)
             {
-                Command command = new()
-                {
-                    CommandName = commandName,
-                    CommandOutput = commandOutput
-                };
-
-                AddCommand addCommand = new() { Command = command };
-                _ = await mediator.Send(addCommand);
-
-                _twitchBotClient.SendMessage(_twitchBotClient.JoinedChannels[0].Channel, $"@{moderatorName} Command was successfully added");
+                _twitchBotClient.SendMessage(_twitchBotClient.JoinedChannels[0].Channel, $"@{chatMessage.Username} {socialMedia.Link}");
+                return;
             }
-            else
+
+            GetCommandByNameQuery getCommandByNameQuery = new() { CommandName = reqest };
+            Command command = (await mediator.Send(getCommandByNameQuery)).Command;
+
+            if (command is not null)
             {
-                _twitchBotClient.SendMessage(_twitchBotClient.JoinedChannels[0].Channel, $"@{moderatorName} Command is already exists. Try !editCommand [command] [commandOutput]");
-            }
-        }
-
-        private async Task EditCustomCommand(string moderatorName, string commandName, string commandOutput)
-        {
-            using IServiceScope scope = _serviceScopeFactory.CreateScope();
-            IMediator mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-
-            if (Commands.ContainsKey(commandName))
-            {
-                EditCommand editCommand = new()
-                {
-                    CommandName = commandName,
-                    CommandOutput = commandOutput
-                };
-                _ = await mediator.Send(editCommand);
-
-                Commands[commandName] = commandOutput;
-                _twitchBotClient.SendMessage(_twitchBotClient.JoinedChannels[0].Channel, $"@{moderatorName} Command was successfully edited");
-            }
-            else
-            {
-                _twitchBotClient.SendMessage(_twitchBotClient.JoinedChannels[0].Channel, $"@{moderatorName} There is no such a command. Try !addCommand [command] [commandOutput]");
-            }
-        }
-
-        private async Task DeleteCustomCommand(string moderatorName, string commandName)
-        {
-            using IServiceScope scope = _serviceScopeFactory.CreateScope();
-            IMediator mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-
-            if (Commands.Remove(commandName))
-            {
-                DeleteCommand deleteCommand = new() { CommandName = commandName };
-                _ = await mediator.Send(deleteCommand);
-
-                _twitchBotClient.SendMessage(_twitchBotClient.JoinedChannels[0].Channel, $"@{moderatorName} Command was successfully deleted");
-            }
-            else
-            {
-                _twitchBotClient.SendMessage(_twitchBotClient.JoinedChannels[0].Channel, $"@{moderatorName} There is no such a command");
-            }
-        }
-
-        private void TryExecuteCustomCommand(ChatMessage chatMessage)
-        {
-            if (Commands.TryGetValue(chatMessage.Message, out string commandOutput))
-            {
-                _twitchBotClient.SendMessage(_twitchBotClient.JoinedChannels[0].Channel, $"@{chatMessage.Username} {commandOutput}");
+                _twitchBotClient.SendMessage(_twitchBotClient.JoinedChannels[0].Channel, $"@{chatMessage.Username} {command.CommandOutput}");
+                return;
             }
         }
 
