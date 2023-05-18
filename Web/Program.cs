@@ -6,7 +6,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using TwitchLib.Api.Interfaces;
 using Web.Configuration;
+using Web.Services;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -28,9 +30,9 @@ builder.Services.AddDomainServices((sp, options) =>
         .UseLoggerFactory(loggerFactory);
 });
 
-// builder.Services.AddSingleton<ITwitchAPI, TwitchApiClient>();
-// builder.Services.AddSingleton<TwitchBotService>();
-// builder.Services.AddHostedService(provider => provider.GetService<TwitchBotService>());
+builder.Services.AddSingleton<ITwitchAPI, TwitchApiClient>();
+builder.Services.AddSingleton<TwitchBotService>();
+builder.Services.AddHostedService(provider => provider.GetService<TwitchBotService>());
 
 WebApplication app = builder.Build();
 
