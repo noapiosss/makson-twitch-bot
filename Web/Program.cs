@@ -38,7 +38,7 @@ WebApplication app = builder.Build();
 //builder.Services.AddHostedService<InitTwitchBot>();
 
 // Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
 {
     _ = app.UseExceptionHandler("/Home/Error");
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
