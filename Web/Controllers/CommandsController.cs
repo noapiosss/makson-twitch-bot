@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading;
@@ -34,9 +35,11 @@ namespace Web.Controllers
                     });
                 }
 
+                _ = Enum.TryParse(request.CommandType, out CommandType commandType);
                 Command command = new()
                 {
                     CommandName = request.CommandName,
+                    CommandType = commandType,
                     CommandOutput = request.CommandOutput
                 };
 
@@ -48,49 +51,11 @@ namespace Web.Controllers
                     return BadRequest(new ErrorResponse
                     {
                         Code = ErrorCode.AlreadyExists,
-                        Message = "commad already exists"
+                        Message = "command already exists"
                     });
                 }
 
                 AddCommandResponse response = new() { CommandIsAdded = addCommandResult.CommandIsAdded };
-
-                return Ok(response);
-            }, cancellationToken);
-        }
-
-        [HttpPost("addSocialMedia")]
-        public Task<IActionResult> AddSocialMediaEndpoint([FromBody] AddSocialMediaRequest request, CancellationToken cancellationToken)
-        {
-            return SafeExecute(async () =>
-            {
-                if (HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name) == null)
-                {
-                    return BadRequest(new ErrorResponse
-                    {
-                        Code = ErrorCode.Unauthorized,
-                        Message = "current request require authorization"
-                    });
-                }
-
-                SocialMedia socialMedia = new()
-                {
-                    SocialNetworkName = request.SocialNetworkName,
-                    Link = request.Link
-                };
-
-                AddSocialMedia addSocialMedia = new() { SocialMedia = socialMedia };
-                AddSocialMediaResult addSocialMediaResult = await _mediator.Send(addSocialMedia, cancellationToken);
-
-                if (!addSocialMediaResult.SocialMediaIsAdded)
-                {
-                    return BadRequest(new ErrorResponse
-                    {
-                        Code = ErrorCode.AlreadyExists,
-                        Message = "commad already exists"
-                    });
-                }
-
-                AddCommandResponse response = new() { CommandIsAdded = addSocialMediaResult.SocialMediaIsAdded };
 
                 return Ok(response);
             }, cancellationToken);
@@ -123,38 +88,6 @@ namespace Web.Controllers
                 }
 
                 DeleteCommandResponse response = new() { DeleteIsSuccessful = deleteCommandResult.CommandIsDeleted };
-
-                return Ok(response);
-            }, cancellationToken);
-        }
-
-        [HttpDelete("deleteSocialMedia")]
-        public Task<IActionResult> DeleteSocialMediaEndpoint([FromBody] DeleteSocialMediaRequest request, CancellationToken cancellationToken)
-        {
-            return SafeExecute(async () =>
-            {
-                if (HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name) == null)
-                {
-                    return BadRequest(new ErrorResponse
-                    {
-                        Code = ErrorCode.Unauthorized,
-                        Message = "current request require authorization"
-                    });
-                }
-
-                DeleteSocialMedia deleteSocialMedia = new() { SocialNetworkName = request.SocialNetworkName };
-                DeleteSocialMediaResult deleteSocialMediaResult = await _mediator.Send(deleteSocialMedia, cancellationToken);
-
-                if (!deleteSocialMediaResult.SocialMediaIsDeleted)
-                {
-                    return BadRequest(new ErrorResponse
-                    {
-                        Code = ErrorCode.NotFound,
-                        Message = "social media not found"
-                    });
-                }
-
-                DeleteSocialMediaResponse response = new() { DeleteIsSuccessful = deleteSocialMediaResult.SocialMediaIsDeleted };
 
                 return Ok(response);
             }, cancellationToken);

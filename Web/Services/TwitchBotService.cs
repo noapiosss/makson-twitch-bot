@@ -117,11 +117,11 @@ namespace Web.Services
             using IServiceScope scope = _serviceScopeFactory.CreateScope();
             IMediator mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 
-            GetAllSocialMediasQuery getAllSocialMediasQuery = new();
-            GetAllSocialMediasQueryResult getAllSocialMediasQueryResult = await mediator.Send(getAllSocialMediasQuery);
-            foreach (SocialMedia socialMedia in getAllSocialMediasQueryResult.SocialMedias)
+            GetCommandsByTypeQuery getCommandsByTypeQuery = new() {CommadType = CommandType.SocialMedia};
+            GetCommandsByTypeQueryResult getCommandsByTypeQueryResult = await mediator.Send(getCommandsByTypeQuery);
+            foreach (Command socialMedia in getCommandsByTypeQueryResult.Commands)
             {
-                periodicMessage += $"\n{socialMedia.Link}";
+                periodicMessage += $"\n{socialMedia.CommandOutput}";
             }
 
             _twitchBotClient.SendMessage(_twitchBotClient.JoinedChannels[0].Channel, periodicMessage);
@@ -280,20 +280,11 @@ namespace Web.Services
 
         private async void TryExecuteCustomCommand(ChatMessage chatMessage)
         {
-            string reqest = chatMessage.Message.Split(" ")[0];
+            string request = chatMessage.Message.Split(" ")[0];
             using IServiceScope scope = _serviceScopeFactory.CreateScope();
             IMediator mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 
-            GetSocialMediaByNameQuery getSocialMediaByNameQuery = new() { SocialNetworkName = reqest };
-            SocialMedia socialMedia = (await mediator.Send(getSocialMediaByNameQuery)).SocialMedia;
-
-            if (socialMedia is not null)
-            {
-                _twitchBotClient.SendMessage(_twitchBotClient.JoinedChannels[0].Channel, $"@{chatMessage.Username} {socialMedia.Link}");
-                return;
-            }
-
-            GetCommandByNameQuery getCommandByNameQuery = new() { CommandName = reqest };
+            GetCommandByNameQuery getCommandByNameQuery = new() { CommandName = request };
             Command command = (await mediator.Send(getCommandByNameQuery)).Command;
 
             if (command is not null)

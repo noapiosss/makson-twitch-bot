@@ -42,6 +42,7 @@ addBtn.onclick = async function()
         method: 'POST',
         body: JSON.stringify({
             commandName,
+            commandType: "Command",
             commandOutput
         }),
         headers: {

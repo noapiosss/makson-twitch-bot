@@ -3,6 +3,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
+using Contracts.Database;
 using Domain.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -35,10 +36,10 @@ namespace Web.Controllers
                 return RedirectToAction("Signin", "Session");
             }
 
-            GetAllCommandsQuery getAllCommandsQuery = new();
-            GetAllCommandsQueryResult getAllCommandsQueryResult = await _mediator.Send(getAllCommandsQuery, cancellationToken);
+            GetCommandsByTypeQuery getCommandsByTypeQuery = new() { CommadType = CommandType.Commnad };
+            GetCommandsByTypeQueryResult getCommandsByTypeQueryResult = await _mediator.Send(getCommandsByTypeQuery, cancellationToken);
 
-            return View(getAllCommandsQueryResult.Commands);
+            return View(getCommandsByTypeQueryResult.Commands);
         }
 
         public async Task<IActionResult> SocialMedias(CancellationToken cancellationToken)
@@ -48,10 +49,10 @@ namespace Web.Controllers
                 return RedirectToAction("Signin", "Session");
             }
 
-            GetAllSocialMediasQuery getAllSocialMediasQuery = new();
-            GetAllSocialMediasQueryResult getAllCommandsQueryResult = await _mediator.Send(getAllSocialMediasQuery, cancellationToken);
+            GetCommandsByTypeQuery getCommandsByTypeQuery = new() { CommadType = CommandType.SocialMedia };
+            GetCommandsByTypeQueryResult getCommandsByTypeQueryResult = await _mediator.Send(getCommandsByTypeQuery, cancellationToken);
 
-            return View(getAllCommandsQueryResult.SocialMedias);
+            return View(getCommandsByTypeQueryResult.Commands);
         }
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]

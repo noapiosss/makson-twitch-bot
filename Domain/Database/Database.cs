@@ -6,7 +6,6 @@ namespace Domain.Database
     public class TwitchBotDbContext : DbContext
     {
         public DbSet<Command> Commands { get; init; }
-        public DbSet<SocialMedia> SocialMedias { get; init; }
 
         public TwitchBotDbContext() : base()
         {

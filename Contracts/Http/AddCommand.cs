@@ -8,6 +8,9 @@ namespace Contracts.Http
         public string CommandName { get; init; }
 
         [Required]
+        public string CommandType { get; init; }
+
+        [Required]
         public string CommandOutput { get; init; }
     }
 

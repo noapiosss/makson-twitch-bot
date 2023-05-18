@@ -1,4 +1,4 @@
-@model IList<Contracts.Database.SocialMedia>
+@model IList<Contracts.Database.Command>
 
 @{
     ViewData["Title"] = "Commands";
@@ -13,10 +13,10 @@
 <table class="table" id="table">
     <thead>
         <tr>
-            <th class="social-media-column">
+            <th class="command-column">
                 Command
             </th>
-            <th class="link-column">
+            <th class="output-column">
                 Link
             </th>
             <th class="button-column">
@@ -28,24 +28,24 @@
     <tbody id="table-body">
         @foreach (var socialMedia in Model)
         {
-            <tr id="row-@socialMedia.SocialNetworkName">
+            <tr id="row-@socialMedia.CommandName">
                 <th>
-                    @socialMedia.SocialNetworkName
+                    @socialMedia.CommandName
                 </th>
                 <th>
-                    @socialMedia.Link
+                    @socialMedia.CommandOutput
                 </th>
                 <th>
-                    <div class="delete-button" id="@socialMedia.SocialNetworkName">delete</div>
+                    <div class="delete-button" id="@socialMedia.CommandName">delete</div>
                 </th>
             </tr>
         }
         <tr id="add-row">
             <th>
-                <input type="text" class="social-media-input" id="social-media-input" placeholder="command">
+                <input type="text" class="command-input" id="command-input" placeholder="command">
             </th>
             <th>
-                <input type="text" class="link-input" id="link-input" placeholder="link">
+                <input type="text" class="output-input" id="output-input" placeholder="output">
             </th>
             <th>
                 <div class="add-button" id="add-button">add</div>

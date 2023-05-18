@@ -16,6 +16,10 @@ namespace Contracts.Database
         public string CommandName { get; set; }
 
         [Required]
+        [Column("command_rype")]
+        public CommandType CommandType { get; set; }
+
+        [Required]
         [Column("command_output")]
         public string CommandOutput { get; set; }
     }

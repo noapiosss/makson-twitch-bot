@@ -6,10 +6,10 @@ for (let deleteBtn of deleteBtns)
     {
         if (confirm("Are you sure?"))
         {
-            await fetch(`${window.location.origin}/api/deleteSocialMedia`, {
+            await fetch(`${window.location.origin}/api/deleteCommand`, {
                 method: 'DELETE',
                 body: JSON.stringify({
-                    socialNetworkName: deleteBtn.id
+                    commandName: deleteBtn.id
                 }),
                 headers: {
                     'content-type': 'application/json'
@@ -29,20 +29,21 @@ for (let deleteBtn of deleteBtns)
     }
 }
 
-const socialMediaInput = document.getElementById("social-media-input");
-const linkInput = document.getElementById("link-input");
+const commadInput = document.getElementById("command-input");
+const outputInput = document.getElementById("output-input");
 const addBtn = document.getElementById("add-button");
 
 addBtn.onclick = async function()
 {
-    const socialNetworkName = socialMediaInput.value;
-    const link = linkInput.value;
+    const commandName = commadInput.value;
+    const commandOutput = outputInput.value;
 
-    await fetch(`${window.location.origin}/api/addSocialMedia`, {
+    await fetch(`${window.location.origin}/api/addCommand`, {
         method: 'POST',
         body: JSON.stringify({
-            socialNetworkName,
-            link
+            commandName,
+            commandType: "SocialMedia",
+            commandOutput
         }),
         headers: {
             'content-type': 'application/json'
@@ -51,7 +52,7 @@ addBtn.onclick = async function()
     .then((response) => {
         if (response.ok)
         {
-            CreateRow(socialNetworkName, link);
+            CreateRow(commandName, commandOutput);
         }
         else
         {
@@ -59,19 +60,19 @@ addBtn.onclick = async function()
         }
     })
 
-    socialMediaInput.value = "";
-    linkInput.value = "";
+    commadInput.value = "";
+    outputInput.value = "";
 }
 
-function CreateRow(socialNetworkName, link)
+function CreateRow(commandName, commandOutput)
 {
     let newRow = document.createElement("tr");
-    newRow.Id = `row-${socialNetworkName}`;
+    newRow.Id = `row-${commandName}`;
 
-    let socialNetworkNameColumn = document.createElement("th");
-    socialNetworkNameColumn.innerHTML = socialNetworkName;
-    let linkColumn = document.createElement("th");
-    linkColumn.innerHTML = link;
+    let commandNameColumn = document.createElement("th");
+    commandNameColumn.innerHTML = commandName;
+    let commandOutputColumn = document.createElement("th");
+    commandOutputColumn.innerHTML = commandOutput;
     let deleteColumn = document.createElement("th");
     let deleteBtn = document.createElement("div");
     deleteBtn.className = "delete-button";
@@ -81,10 +82,10 @@ function CreateRow(socialNetworkName, link)
     {
         if (confirm("Are you sure?"))
         {
-            await fetch(`${window.location.origin}/api/deleteSocialMedia`, {
+            await fetch(`${window.location.origin}/api/deleteCommand`, {
                 method: 'DELETE',
                 body: JSON.stringify({
-                    socialNetworkName
+                    commandName
                 }),
                 headers: {
                     'content-type': 'application/json'
@@ -105,8 +106,8 @@ function CreateRow(socialNetworkName, link)
 
     deleteColumn.appendChild(deleteBtn);
 
-    newRow.appendChild(socialNetworkNameColumn);
-    newRow.appendChild(linkColumn);
+    newRow.appendChild(commandNameColumn);
+    newRow.appendChild(commandOutputColumn);
     newRow.appendChild(deleteColumn);
 
     document.getElementById("table-body").insertBefore(newRow, document.getElementById("add-row"));
