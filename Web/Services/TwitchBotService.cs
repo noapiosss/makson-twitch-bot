@@ -113,6 +113,11 @@ namespace Web.Services
 
         private async void SendPeriodicMessage(object state)
         {
+            if (!isLive)
+            {
+                return;
+            }
+            
             string periodicMessage = "Yo guys and gals! If you want to support streamer and get more content follow his social medias:";
             using IServiceScope scope = _serviceScopeFactory.CreateScope();
             IMediator mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
