@@ -86,7 +86,7 @@ namespace Web.Services
         {
             _ = _twitchBotClient.Connect();
 
-            PeriodicMessageTimer = new(SendPeriodicMessage, null, TimeSpan.Zero, TimeSpan.FromMinutes(30));
+            PeriodicMessageTimer = new(SendPeriodicMessage, null, TimeSpan.Zero, TimeSpan.FromHours(1));
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
