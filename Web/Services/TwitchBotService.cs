@@ -117,7 +117,7 @@ namespace Web.Services
             {
                 return;
             }
-            
+
             string periodicMessage = "Yo guys and gals! If you want to support streamer and get more content follow his social medias:";
             using IServiceScope scope = _serviceScopeFactory.CreateScope();
             IMediator mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
@@ -158,9 +158,9 @@ namespace Web.Services
                  $"@{requestFrom} You are following the channel for " :
                  $"@{requestFrom} {requestAbout} is following the channel for ";
 
-            if (days < 0)
+            if (totalDays < 0)
             {
-                message += "less than 1 day";
+                return message + "less than 1 day";
             }
 
             if (years > 0)
