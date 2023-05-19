@@ -86,7 +86,7 @@ namespace Web.Services
         {
             _ = _twitchBotClient.Connect();
 
-            PeriodicMessageTimer = new(SendPeriodicMessage, null, TimeSpan.FromHours(30), TimeSpan.FromHours(1));
+            PeriodicMessageTimer = new(SendPeriodicMessage, null, TimeSpan.Zero, TimeSpan.FromMinutes(30));
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
@@ -152,6 +152,11 @@ namespace Web.Services
             string message = requestFrom == requestAbout ?
                  $"@{requestFrom} You are following the channel for " :
                  $"@{requestFrom} {requestAbout} is following the channel for ";
+
+            if (days < 0)
+            {
+                message += "less than 1 day";
+            }
 
             if (years > 0)
             {
