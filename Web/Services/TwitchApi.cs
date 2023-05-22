@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TwitchLib.Api;
 using TwitchLib.Api.Core.Interfaces;
@@ -16,6 +17,7 @@ namespace Web.Services
     public class TwitchApiClient : ITwitchAPI
     {
         private readonly TwitchAPI _apiClient;
+        private readonly ILogger<TwitchApiClient> _logger;
         private readonly string _channel;
         private DateTime ExpiresAt;
         private bool AccessTokenIsDeprecated => ExpiresAt > DateTime.UtcNow;
@@ -72,16 +74,18 @@ namespace Web.Services
             }
         }
 
-        public TwitchApiClient(IOptionsMonitor<TwitchApiConfiguration> twitchApiConfiguration)
+        public TwitchApiClient(IOptionsMonitor<TwitchApiConfiguration> twitchApiConfiguration, ILogger<TwitchApiClient> logger)
         {
             _apiClient = new();
             _apiClient.Settings.ClientId = twitchApiConfiguration.CurrentValue.ClientId;
             _apiClient.Settings.Secret = twitchApiConfiguration.CurrentValue.ClientSecret;
             _channel = twitchApiConfiguration.CurrentValue.Channel;
+            _logger = logger;
         }
 
         private async Task GetAccessTokenAsync()
         {
+            _logger.LogInformation("Updating bot access token", DateTime.UtcNow.ToLongDateString());
             using HttpClient httpClient = new();
 
             Dictionary<string, string> parameters = new()

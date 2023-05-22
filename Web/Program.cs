@@ -17,6 +17,8 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie();
 
+builder.Logging.AddConsole();
+
 builder.Services.Configure<AppConfiguration>(builder.Configuration.GetSection("AppConfiguration"));
 builder.Services.Configure<TwitchBotConfiguration>(builder.Configuration.GetSection("TwitchBotConfiguration"));
 builder.Services.Configure<TwitchApiConfiguration>(builder.Configuration.GetSection("TwitchApiConfiguration"));

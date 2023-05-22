@@ -9,6 +9,7 @@ using Domain.Queries;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TwitchLib.Api.Helix.Models.Users.GetUserFollows;
 using TwitchLib.Api.Helix.Models.Users.GetUsers;
@@ -26,6 +27,7 @@ namespace Web.Services
 
     public class TwitchBotService : IHostedService, IDisposable
     {
+        private readonly ILogger<TwitchBotService> _logger;
         private readonly ITwitchAPI _twitchApiClient;
         private readonly TwitchClient _twitchBotClient;
         private readonly TwitchPubSub _twitchPubSubClient;
@@ -37,11 +39,12 @@ namespace Web.Services
 
         public TwitchBotService(IOptionsMonitor<TwitchBotConfiguration> twitchBotConfiguration,
             IServiceScopeFactory serviceScopeFactory,
-            ITwitchAPI twitchApiClient)
+            ITwitchAPI twitchApiClient,
+            ILogger<TwitchBotService> logger)
         {
             _twitchApiClient = twitchApiClient;
             _serviceScopeFactory = serviceScopeFactory;
-
+            _logger = logger;
 
             ConnectionCredentials credentials = new(twitchBotConfiguration.CurrentValue.BotUsername, twitchBotConfiguration.CurrentValue.BotPassword);
             ClientOptions clientOptions = new()
@@ -56,7 +59,6 @@ namespace Web.Services
             _twitchBotClient.Initialize(credentials, twitchBotConfiguration.CurrentValue.Channel);
 
             _twitchBotClient.OnLog += Client_OnLog;
-            _twitchBotClient.OnWhisperReceived += Client_OnWhisperReceived;
             _twitchBotClient.OnConnected += Client_OnConnected;
             _twitchBotClient.OnMessageReceived += ClientOnMessageReceived;
             _twitchBotClient.OnUserJoined += Client_OnUserJoin;
@@ -74,40 +76,48 @@ namespace Web.Services
         private void Client_OnStreamDown(object sender, TwitchLib.PubSub.Events.OnStreamDownArgs e)
         {
             isLive = false;
+            _logger.LogInformation("Stream down", DateTime.UtcNow.ToLongDateString());
         }
 
         private void Client_OnStreamUp(object sender, TwitchLib.PubSub.Events.OnStreamUpArgs e)
         {
             isLive = true;
             lastLiveStarted = DateTime.UtcNow;
+            _logger.LogInformation("Stream up", DateTime.UtcNow.ToLongDateString());
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             _ = _twitchBotClient.Connect();
+            _logger.LogInformation("Bot connectend", DateTime.UtcNow.ToLongDateString());
 
-            PeriodicMessageTimer = new(SendPeriodicMessage, null, TimeSpan.Zero, TimeSpan.FromHours(1));
+            PeriodicMessageTimer = new(SendPeriodicMessage, null, TimeSpan.FromSeconds(10), TimeSpan.FromHours(1));
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
             _twitchBotClient.Disconnect();
+            _logger.LogInformation("Bot disconnected", DateTime.UtcNow.ToLongDateString());
+
             Dispose();
             return Task.CompletedTask;
         }
 
         private void Clinet_ReSub(object sender, OnReSubscriberArgs e)
         {
+            _logger.LogInformation($"[{DateTime.UtcNow}], {e.ReSubscriber.DisplayName} resubscribed, streak: {e.ReSubscriber.Months}");
             _twitchBotClient.SendMessage(_twitchBotClient.JoinedChannels[0].Channel, $"@{e.ReSubscriber.DisplayName} You are a cutie kitty gospod6Hehe for {e.ReSubscriber.Months} months!");
         }
 
         private void Client_NewSub(object sender, OnNewSubscriberArgs e)
         {
+            _logger.LogInformation($"[{DateTime.UtcNow}], {e.Subscriber.DisplayName} subcrived first time");
             _twitchBotClient.SendMessage(_twitchBotClient.JoinedChannels[0].Channel, $"@{e.Subscriber.DisplayName} Welcome on the board, fella! Now you are a cutie kitty gospod6Hehe");
         }
 
         private void Client_OnFollow(object sender, TwitchLib.PubSub.Events.OnFollowArgs e)
         {
+            _logger.LogInformation($"[{DateTime.UtcNow}], {e.Username} start following");
             _twitchBotClient.SendMessage(_twitchBotClient.JoinedChannels[0].Channel, $"@{e.Username} Welcome to channel, fella!");
         }
 
@@ -129,6 +139,7 @@ namespace Web.Services
                 periodicMessage += $"\n{socialMedia.CommandOutput}";
             }
 
+            _logger.LogInformation($"[{DateTime.UtcNow}], sending periodec message");
             _twitchBotClient.SendMessage(_twitchBotClient.JoinedChannels[0].Channel, periodicMessage);
         }
 
@@ -140,11 +151,6 @@ namespace Web.Services
         private void Client_OnConnected(object sender, OnConnectedArgs e)
         {
             Console.WriteLine($"Connected to {e.AutoJoinChannel}");
-        }
-
-        private void Client_OnWhisperReceived(object sender, OnWhisperReceivedArgs e)
-        {
-            _twitchBotClient.SendWhisper(e.WhisperMessage.Username, "Hey! Whispers are so cool!!");
         }
 
         private static string GetFollowAgeMessage(string requestFrom, string requestAbout, DateTime followedDate)
@@ -222,6 +228,8 @@ namespace Web.Services
 
         public virtual async void ClientOnMessageReceived(object sender, OnMessageReceivedArgs e)
         {
+            _logger.LogInformation($"[{DateTime.UtcNow}], {e.ChatMessage.Username}: {e.ChatMessage.Message}");
+
             if (e.ChatMessage.Message.StartsWith("!followage"))
             {
                 string[] split = e.ChatMessage.Message.Split(" ");
@@ -297,20 +305,27 @@ namespace Web.Services
             GetCommandByNameQuery getCommandByNameQuery = new() { CommandName = request };
             Command command = (await mediator.Send(getCommandByNameQuery)).Command;
 
+            _logger.LogInformation($"[{DateTime.UtcNow}], trying execute {request} command");
+
             if (command is not null)
             {
+                _logger.LogInformation($"[{DateTime.UtcNow}], {request} command was found");
                 _twitchBotClient.SendMessage(_twitchBotClient.JoinedChannels[0].Channel, $"@{chatMessage.Username} {command.CommandOutput}");
                 return;
             }
+
+            _logger.LogInformation($"[{DateTime.UtcNow}], {request} command not found");
         }
 
         private void Client_OnUserJoin(object sender, OnUserJoinedArgs e)
         {
+            _logger.LogInformation($"[{DateTime.UtcNow}], {e.Username} joined to chat");
             Viewers.Add(e.Username, DateTime.UtcNow);
         }
 
         private void Client_OnUserLeft(object sender, OnUserLeftArgs e)
         {
+            _logger.LogInformation($"[{DateTime.UtcNow}], {e.Username} left chat");
             _ = Viewers.Remove(e.Username);
         }
 
